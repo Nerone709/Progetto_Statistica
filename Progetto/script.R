@@ -14,4 +14,16 @@ if (length(zero_columns) == 0)
   for (col in zero_columns) {
     plot(dataset[[col]], type='h', main=paste('Plot della colonna:', col), xlab='Indice', ylab='Valore')
   }
-}
+  }
+
+# Ricavo le colonne desiderate
+col_URL <- dataset$URL
+col_DOMAIN <- dataset$Domain
+
+# Seleziono le colonne desiderate
+dati <- dataset[, c("URL", "Domain")]
+dati$URL <- as.integer(dati$URL)
+dati$Domain <- as.integer(dati$Domain)
+
+# Crea un boxplot per le lunghezze degli URL e dei domini con colori specifici
+boxplot(dati, main="Boxplot di URL e Domain", xlab="URL", ylab="Domain", col=c("blue", "red"))
