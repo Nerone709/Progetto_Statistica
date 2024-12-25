@@ -29,12 +29,44 @@ print(filtered_dataset)
 
 # Converto tutte le colonne di tipo `character` in `factor`
 filtered_dataset <- filtered_dataset %>%
-  mutate(across(where(is.character), as.factor))
+mutate(across(where(is.character), as.factor))
 
-# Verifico che tutte le colonne di tipo `character` siano state convertite
-str(filtered_dataset)
+# Conto i valori mancanti in ciascuna colonna
+colSums(is.na(filtered_dataset))
 
-# Ricavo la matrice di correlazione ed effettuo la stampa
+# Calcolo la deviazione standard per ogni colonna (considerando solo valori numerici)
+std_devs <- apply(filtered_dataset, 2, function(x) sd(as.numeric(x), na.rm = TRUE))
+
+# Identifico le colonne con deviazione standard pari a zero
+zero_std_columns <- names(std_devs[std_devs == 0])
+
+# Rimuovo le colonne con deviazione standard pari a zero
+filtered_dataset <- filtered_dataset[, !names(filtered_dataset) %in% zero_std_columns]
+
+# Verifico che le colonne siano state rimosse
+print(zero_std_columns)  # Mostra le colonne rimosse
+
+
+#elimino le colonne inutili
+filtered_dataset <- na.omit(filtered_dataset)
+
+#Per le variabili numeriche, sostituisco i NA con la mediana
+filtered_dataset <- filtered_dataset %>%
+mutate(across(where(is.numeric), ~ ifelse(is.na(.), median(., na.rm = TRUE), .)))
+
+#Per le variabili categoriche, sostituisco i NA con la modalità
+filtered_dataset <- filtered_dataset %>%
+mutate(across(where(is.factor), ~ ifelse(is.na(.), Mode(.), .)))
+
+#Funzione per calcolare la modalità (il valore più frequente)
+Mode <- function(x) {
+  uniq_x <- unique(x)
+  uniq_x[which.max(tabulate(match(x, uniq_x)))]
+}
+
+print(ncol(filtered_dataset))
+
+#Ricavo la matrice di correlazione ed effettuo la stampa
 correlation_matrix <- hetcor(filtered_dataset)
 
 # Estraggo la matrice di correlazione dal risultato di hetcor
@@ -52,10 +84,9 @@ ggplot(cor_matrix_long, aes(Var1, Var2, fill = value)) +
   xlab("Variabili") +
   ylab("Variabili") +
   ggtitle("Heatmap della Matrice di Correlazione con Valori") +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) 
 
 # Visualizzo il grafico delle varianze
-variance_df <- data.frame(Column = names(variances), Variance = variances)
 ggplot(variance_df, aes(x = reorder(Column, Variance), y = Variance)) +
   geom_point(color = "blue", size = 3) +
   coord_flip() +
