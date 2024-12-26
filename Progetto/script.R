@@ -1,12 +1,18 @@
-# Carica ggplot2, crayon, polycor e dplyr
+# Carica i pacchetti necessari
 library(ggplot2)
 library(crayon)
-library(polycor)
 library(dplyr)
 library(reshape2)
+library(furrr)
+library(polycor)
+library(data.table)
+library(psych)
+
+# Configurazione per il lavoro in parallelo
+plan(sequential)  # Disabilita la parallelizzazione per evitare problemi
 
 # Carico il dataset
-dataset <- read.csv("Phishing_URL_Dataset_4.csv", sep=';')
+dataset <- fread("Phishing_URL_Dataset_4.csv", sep = ';')
 
 # Ricavo il nuovo dataset eliminando le colonne ricavate
 new_dataset <- dataset %>%
@@ -44,17 +50,67 @@ filtered_dataset <- new_dataset %>%
 filtered_dataset <- filtered_dataset %>%
   select(names(filtered_numeric_cols), where(is.factor))
 
+# Verifica che il dataset filtrato contenga almeno due colonne
+if (ncol(filtered_dataset) < 2) {
+  stop("Il dataset filtrato contiene meno di due colonne.")
+}
+
+# Assicurati che il dataset sia un data frame
+filtered_dataset <- as.data.frame(filtered_dataset)
+
+# Funzione per calcolare la matrice di correlazione mista
+compute_correlation_matrix <- function(data) {
+  cor_matrix <- matrix(NA, ncol(data), ncol(data))
+  problematic_pairs <- list()
+  for (i in 1:ncol(data)) {
+    for (j in i:ncol(data)) {
+      tryCatch({
+        if (is.numeric(data[[i]]) && is.numeric(data[[j]])) {
+          cor_matrix[i, j] <- cor(data[[i]], data[[j]], use = "pairwise.complete.obs")
+        } else {
+          cor_matrix[i, j] <- mixedCor(data[, c(i, j)], use = "pairwise.complete.obs")$rho[1, 2]
+        }
+        cor_matrix[j, i] <- cor_matrix[i, j]
+      }, error = function(e) {
+        message(paste("Could not compute correlation between variables", colnames(data)[i], "and", colnames(data)[j], ":", e$message))
+        problematic_pairs <<- append(problematic_pairs, list(c(colnames(data)[i], colnames(data)[j])))
+        cor_matrix[i, j] <- NA
+        cor_matrix[j, i] <- NA
+      })
+    }
+  }
+  
+  if (length(problematic_pairs) > 0) {
+    message("Problematic variable pairs: ", paste(sapply(problematic_pairs, paste, collapse = " and "), collapse = "; "))
+  }
+  return(cor_matrix)
+}
+
 # Calcolo la matrice di correlazione
-correlation_matrix <- hetcor(filtered_dataset)
+cor_matrix <- compute_correlation_matrix(filtered_dataset)
 
-# Estraggo la matrice di correlazione dal risultato di hetcor
-cor_matrix <- correlation_matrix$cor
+# Assegna i nomi alle righe e colonne
+rownames(cor_matrix) <- colnames(filtered_dataset)
+colnames(cor_matrix) <- colnames(filtered_dataset)
 
-# Converto la matrice in formato "long"
-cor_matrix_long <- melt(cor_matrix)
+# Converto la matrice in formato "long" con reshape2::melt
+cor_matrix_long <- reshape2::melt(cor_matrix)
+
+# Assicurati che il dataset per il plot non sia vuoto
+if (nrow(cor_matrix_long) == 0) {
+  stop("Il dataset per il plot è vuoto.")
+}
+
+# Filtraggio per correlazioni significative
+cor_matrix_long <- cor_matrix_long %>%
+  filter(!is.na(value))  # Mantieni tutti i valori non-NA
+
+# Converto i fattori in caratteri per la stampa corretta
+cor_matrix_long$Var1 <- as.character(cor_matrix_long$Var1)
+cor_matrix_long$Var2 <- as.character(cor_matrix_long$Var2)
 
 # Creo l'heatmap
-ggplot(cor_matrix_long, aes(Var1, Var2, fill = value)) +
+g <- ggplot(cor_matrix_long, aes(Var1, Var2, fill = value)) +
   geom_tile() +
   scale_fill_gradient2(low = "blue", high = "red", mid = "white", midpoint = 0) +
   geom_text(aes(label = round(value, 2)), color = "black", size = 3) +  # Aggiunge i valori numerici
@@ -63,3 +119,34 @@ ggplot(cor_matrix_long, aes(Var1, Var2, fill = value)) +
   ylab("Variabili") +
   ggtitle("Heatmap della Matrice di Correlazione") +
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+# Stampa il plot
+print(g)
+
+
+# Filtro la matrice long in base ai criteri specificati
+cor_matrix_long_filtered <- cor_matrix_long %>%
+  filter((value >= 0.70 & value > 0) | (value < -0.50 & value < 0))
+
+# Assicurati che il dataset per il plot non sia vuoto
+if (nrow(cor_matrix_long_filtered) == 0) {
+  stop("Il dataset filtrato per il plot è vuoto.")
+}
+
+# Converto i fattori in caratteri per la stampa corretta
+cor_matrix_long_filtered$Var1 <- as.character(cor_matrix_long_filtered$Var1)
+cor_matrix_long_filtered$Var2 <- as.character(cor_matrix_long_filtered$Var2)
+
+# Creo l'heatmap con la matrice filtrata
+g_filtered <- ggplot(cor_matrix_long_filtered, aes(Var1, Var2, fill = value)) +
+  geom_tile() +
+  scale_fill_gradient2(low = "blue", high = "red", mid = "white", midpoint = 0) +
+  geom_text(aes(label = round(value, 2)), color = "black", size = 3) +  # Aggiunge i valori numerici
+  theme_minimal() +
+  xlab("Variabili") +
+  ylab("Variabili") +
+  ggtitle("Heatmap della Matrice di Correlazione Filtrata") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+# Stampa il plot
+print(g_filtered)
