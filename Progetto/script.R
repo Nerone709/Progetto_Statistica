@@ -9,20 +9,20 @@ library(data.table)
 library(psych)
 
 # Configurazione per il lavoro in parallelo
-plan(sequential)  # Disabilita la parallelizzazione per evitare problemi
+plan(sequential)
 
 # Carico il dataset
 dataset <- fread("Phishing_URL_Dataset_4.csv", sep = ';')
 
-# Ricavo il nuovo dataset eliminando le colonne ricavate
+# Ricavo il nuovo dataset eliminando le colonne ricavate (secondo la lettura del paper)
 new_dataset <- dataset %>%
   select(-CharContinuationRate, -URLTitleMatchScore, -URLCharProb, -TLDLegitimateProb)
 
-# Numero di colonne numeriche originali
+# Numero di colonne numeriche
 numeric_cols <- new_dataset %>% select(where(is.numeric))
 num_original_numeric_cols <- ncol(numeric_cols)
 
-# Calcolo la varianza
+# Calcolo della varianza
 variances <- apply(numeric_cols, 2, var, na.rm = TRUE)
 
 # Media delle varianze
@@ -39,23 +39,23 @@ filtered_numeric_cols <- numeric_cols %>%
 num_filtered_numeric_cols <- ncol(filtered_numeric_cols)
 
 # Numero di colonne numeriche rimosse
-num_removed_numeric_cols <- num_original_numeric_cols - num_filtered_numeric_cols
-print(paste("Numero di colonne numeriche rimosse con varianza <= soglia:", num_removed_numeric_cols))
+#num_removed_numeric_cols <- num_original_numeric_cols - num_filtered_numeric_cols
+#print(paste("Numero di colonne numeriche rimosse con varianza <= soglia:", num_removed_numeric_cols))
 
 # Converto tutte le colonne di tipo `character` in `factor`
 filtered_dataset <- new_dataset %>%
   mutate(across(where(is.character), as.factor))
 
-# Combina dati numerici filtrati e categorici
+# Combino dati numerici filtrati e categorici
 filtered_dataset <- filtered_dataset %>%
   select(names(filtered_numeric_cols), where(is.factor))
 
-# Verifica che il dataset filtrato contenga almeno due colonne
-if (ncol(filtered_dataset) < 2) {
-  stop("Il dataset filtrato contiene meno di due colonne.")
-}
+# Verifico che il dataset filtrato contenga almeno due colonne
+#if (ncol(filtered_dataset) < 2) {
+#  stop("Il dataset filtrato contiene meno di due colonne.")
+#}
 
-# Assicurati che il dataset sia un data frame
+# Mi assicuro che il dataset sia un data frame
 filtered_dataset <- as.data.frame(filtered_dataset)
 
 # Funzione per calcolare la matrice di correlazione mista
@@ -89,7 +89,7 @@ compute_correlation_matrix <- function(data) {
 # Calcolo la matrice di correlazione
 cor_matrix <- compute_correlation_matrix(filtered_dataset)
 
-# Assegna i nomi alle righe e colonne
+# Assegno i nomi alle righe e colonne
 rownames(cor_matrix) <- colnames(filtered_dataset)
 colnames(cor_matrix) <- colnames(filtered_dataset)
 
@@ -97,19 +97,19 @@ colnames(cor_matrix) <- colnames(filtered_dataset)
 cor_matrix_long <- reshape2::melt(cor_matrix)
 
 # Assicurati che il dataset per il plot non sia vuoto
-if (nrow(cor_matrix_long) == 0) {
-  stop("Il dataset per il plot è vuoto.")
-}
+#if (nrow(cor_matrix_long) == 0) {
+#  stop("Il dataset per il plot è vuoto.")
+#}
 
 # Filtraggio per correlazioni significative
 cor_matrix_long <- cor_matrix_long %>%
-  filter(!is.na(value))  # Mantieni tutti i valori non-NA
+  filter(!is.na(value))  # Mantengo tutti i valori non-NA
 
-# Converto i fattori in caratteri per la stampa corretta
+# Converto i fattori in caratteri 
 cor_matrix_long$Var1 <- as.character(cor_matrix_long$Var1)
 cor_matrix_long$Var2 <- as.character(cor_matrix_long$Var2)
 
-# Creo l'heatmap
+# Creo l'heatmap 
 g <- ggplot(cor_matrix_long, aes(Var1, Var2, fill = value)) +
   geom_tile() +
   scale_fill_gradient2(low = "blue", high = "red", mid = "white", midpoint = 0) +
@@ -137,7 +137,7 @@ if (nrow(cor_matrix_long_filtered) == 0) {
 cor_matrix_long_filtered$Var1 <- as.character(cor_matrix_long_filtered$Var1)
 cor_matrix_long_filtered$Var2 <- as.character(cor_matrix_long_filtered$Var2)
 
-# Creo l'heatmap con la matrice filtrata
+# Creo il primo heatmap con la matrice filtrata
 g_filtered <- ggplot(cor_matrix_long_filtered, aes(Var1, Var2, fill = value)) +
   geom_tile() +
   scale_fill_gradient2(low = "blue", high = "red", mid = "white", midpoint = 0) +
@@ -148,7 +148,7 @@ g_filtered <- ggplot(cor_matrix_long_filtered, aes(Var1, Var2, fill = value)) +
   ggtitle("Heatmap della Matrice di Correlazione Filtrata") +
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
 
-# Stampa il plot
+# Stampo il plot
 print(g_filtered)
 
 
@@ -156,11 +156,11 @@ print(g_filtered)
 dataset_corr <- filtered_numeric_cols %>%
   select(-URLSimilarityIndex, -URLLength, -SpacialCharRatioInURL, -ObfuscationRatio, -NoOfOtherSpecialCharsInURL, -NoOfObfuscatedChar, -NoOfLettersInURL, -NoOfDegitsInURL, -HasSocialNet, -HasObfuscation, -HasCopyrightInfo, -DomainTitleMatchScore, -DegitRatioInURL)
 
-# Calcola la matrice di correlazione
+# Calcolo la matrice di correlazione
 cor_matrix <- cor(dataset_corr, use = "complete.obs")
 melted_cor_matrix <- melt(cor_matrix)
 
-# Crea l'heatmap con i numeri
+# Creo l'heatmap dopo il primo filtraggio
 ggplot(data = melted_cor_matrix, aes(x = Var1, y = Var2, fill = value)) +
   geom_tile(color = "white") +  # Colore dei bordi delle celle
   scale_fill_gradient2(low = "blue", high = "red", mid = "white", 
@@ -172,7 +172,7 @@ ggplot(data = melted_cor_matrix, aes(x = Var1, y = Var2, fill = value)) +
   coord_fixed() +
   labs(title = "Heatmap della Matrice di Correlazione dopo aver eliminato i valori maggiori di 0.70 e minori di -0.50", x = "Variabili", y = "Variabili")
 
-# Calcola la matrice di correlazione per dataset_corr
+# Calcolo la matrice di correlazione per dataset_corr
 cor_matrix <- cor(dataset_corr, use = "complete.obs")
 
 # Converto la matrice di correlazione in formato "long" per ggplot
@@ -187,7 +187,7 @@ if (nrow(melted_cor_matrix_filtered) == 0) {
   stop("Nessun valore di correlazione soddisfa i criteri di filtraggio (>= 0.60 o <= -0.60).")
 }
 
-# Creo l'heatmap per i valori filtrati
+# Creo l'heatmap per i valori filtrati per valori >= .60
 ggplot(data = melted_cor_matrix_filtered, aes(x = Var1, y = Var2, fill = value)) +
   geom_tile(color = "white") +  # Aggiungi bordi bianchi alle celle
   scale_fill_gradient2(low = "blue", high = "red", mid = "white", 
@@ -206,6 +206,37 @@ ggplot(data = melted_cor_matrix_filtered, aes(x = Var1, y = Var2, fill = value))
     y = "Variabili"
   )
 
+dataset_finale <- dataset_corr %>%
+  select(-NoOfQMarkInURL, -NoOfEqualsInURL, -NoOfExternalRef, -HasDescription, -NoOfSelfRef)
 
 
+# Calcolo la matrice di correlazione del dataset finale
+cor_matrix_finale <- cor(dataset_finale, use = "complete.obs")
+
+# Converto la matrice di correlazione in formato "long" per ggplot
+melted_cor_matrix_finale <- melt(cor_matrix_finale)
+
+# Creo la heatmap per il dataset finale
+ggplot(data = melted_cor_matrix_finale, aes(x = Var1, y = Var2, fill = value)) +
+  geom_tile(color = "white") +  # Aggiungi bordi bianchi alle celle
+  scale_fill_gradient2(
+    low = "blue", high = "red", mid = "white", 
+    midpoint = 0, limit = c(-1, 1), space = "Lab", 
+    name = "Correlazione"
+  ) +
+  geom_text(aes(label = round(value, 2)), color = "black", size = 3) +  # Mostra i numeri nella heatmap
+  theme_minimal() +  # Applica un tema minimale
+  theme(
+    axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1, size = 8),  # Ruota i nomi delle variabili
+    axis.text.y = element_text(size = 8)  # Riduci dimensioni dei nomi sull'asse y
+  ) +
+  coord_fixed() +  # Mantieni le proporzioni
+  labs(
+    title = "Heatmap della Matrice di Correlazione (Dataset Finale)",
+    x = "Variabili",
+    y = "Variabili"
+  )
+
+# Salvo il dataset finale in formato CSV
+write.csv(dataset_finale, "dataset_finale.csv", row.names = FALSE)
 
