@@ -7,11 +7,11 @@ library(caret)
 library(glmnet)
 
 #Carico csv per l'explenability
-data <- read.csv(" finale_filtraggio.csv", sep = ",")
-data1 <- read.csv(" finale_filtraggio2.csv", sep = ",")
+data <- read.csv("finale_filtraggio.csv", sep = ",")
+data1 <- read.csv("finale_filtraggio2.csv", sep = ",")
 
 #Converto la colonna label in factor
-#data$label = as.factor(data$label)
+data$label = as.factor(data$label)
 
 #Carico modello KNN
 model <- train(label ~., data = data, method = "knn")
@@ -22,13 +22,16 @@ model_iml <- Predictor$new(model, data = data, y = "label")
 model_iml1 <- Predictor$new(model1, data = data1, y = "label") 
 
 #Uso spiegabilità del modello a livello globale
-#importance <- FeatureImp$new(model_iml, loss = "f1")
+importance <- FeatureImp$new(model_iml, loss = "f1")
+importance1 <- FeatureImp$new(model_iml1, loss = "f1")
 
 #Plotto le feature che hanno contribuito di più all' abbassamento della loss
-#p <- plot(importance)
+p <- plot(importance)
+p1 <- plot(importance1)
 
 #Salva il grafico 
-#ggsave("feature_importance.png", plot = p)
+ggsave("feature_importance.png", plot = p)
+ggsave("feature_importance1.png", plot = p1)
 
 #Generazioni 10 osservazioni casuali da spiegare
 random_index_obs <- sample(1:nrow(data), size = 10, replace = FALSE)
@@ -48,7 +51,19 @@ for(i in random_index_obs)
   
   shap_p <- shap_explainer$plot()
   shap_p1 <- shap_explainer1$plot()
-  ggsave(paste0("iml_plot/shap/", "shap_obs", i,".png"), plot = shap_p)
+ ggsave(paste0("iml_plot/shap/", "shap_obs", i,".png"), plot = shap_p)
   ggsave(paste0("iml_plot/shap/" , "shap1_obs", i,".png"), plot = shap_p1)
 }
+
+#Filtraggio colonne utilizzando model agnostic algo, global: feature importance, 
+#Local: lime and shap values
+dataset_filtrato <- subset(data, select = -c(NoOfCSS, NoOfJS, TLD, LineOfCode, NoOfImage))
+write.csv(dataset_filtrato, "dataset_filtraggio_finale.csv", row.names = FALSE)
+
+dataset_filtrato2 <- subset(data1, select = -c(NoOfJS, LineOfCode, NoOfImage, IsResponsive))
+write.csv(dataset_filtrato2, "dataset_filtraggio_finale2.csv", row.names = FALSE)
+
+
+
+
 
