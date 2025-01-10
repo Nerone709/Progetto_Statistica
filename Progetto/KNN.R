@@ -26,3 +26,20 @@ testing_pre_processed <- predict(pre_processor_values, testing)
 trctrl <- trainControl(method = "repeatedcv", number = 10, repeats = 4)
 knn_model <- train(label ~., data = train_pre_processed, method = "knn", trControl = trctrl, tuneGrid = data.frame(k = c(3, 5, 7, 9, 11, 13)))
 knn_model
+
+#Generazione delle predizioni del modello addestrato
+test_pred <- predict(knn_model, newdata = testing_pre_processed)
+
+#Valutazione performance su testset tramite metodo di caret confusion matrix
+cm <- confusionMatrix(test_pred, testing_pre_processed$label, mode = "everything")
+
+#Plotting della confusion Matrix
+cm_to_plot <- as.data.frame(cm$table)
+ggplot(cm_to_plot, aes(Prediction, Reference, fill = Freq)) +
+  geom_tile() +
+  geom_text(aes(label = Freq)) +
+  scale_fill_gradient(low = "white", high = "red") +
+  labs(x = "phishing", y = "nophishing") +
+  scale_x_discrete(labels = c("Classe 0", "Classe 1")) +
+  scale_y_discrete(labels = c("Classe 1", "Classe 0"))
+
