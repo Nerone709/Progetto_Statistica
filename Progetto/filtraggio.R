@@ -18,6 +18,8 @@ dataset <- fread("Phishing_URL_Dataset_4.csv", sep = ';')
 new_dataset <- dataset %>%
   select(-CharContinuationRate, -URLTitleMatchScore, -URLCharProb, -TLDLegitimateProb)
 
+write.csv(new_dataset, "intermedio_paper.csv", row.names = FALSE)
+
 # Converto le colonne `character` in `factor`
 filtered_dataset <- new_dataset %>%
   mutate(across(where(is.character), as.factor))
@@ -42,6 +44,8 @@ threshold_variance <- mean_variance / 2
 # Filtro le colonne con varianza <= soglia
 filtered_numeric_cols <- numeric_cols %>%
   select(which(variances <= threshold_variance))
+
+write.csv(filtered_numeric_cols, "intermedio_meanV.csv", row.names = FALSE)
 
 # Numero di colonne numeriche rimaste
 num_filtered_numeric_cols <- ncol(filtered_numeric_cols)
@@ -176,4 +180,4 @@ ggplot(data = melted_cor_matrix_finale, aes(x = Var1, y = Var2, fill = value)) +
   )
 
 # Salvo il dataset finale in formato CSV
-write.csv(dataset_finale, "finale_filtraggio.csv", row.names = FALSE)
+write.csv(dataset_finale, "intermedio_correlazione.csv", row.names = FALSE)
