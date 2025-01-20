@@ -58,3 +58,14 @@ for(i in 1:ncol(data))
   cat(i, "Kurtosis value: ", kurt_val, "\n")
 }
 
+
+#for(i in 1:ncol(filtered_data_final))
+#{
+#  moda <- function(x)
+#  {
+#    ux <-unique(x)
+#    ux[which.max(tabulate(match(x, ux)))]
+#    plot_filtered <- ggplot()
+#  }
+#}
+
