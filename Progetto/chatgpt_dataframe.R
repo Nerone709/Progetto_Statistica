@@ -3,7 +3,7 @@ library(jsonlite)
 library(dplyr)
 
 # Funzione per inviare richieste all'API di OpenAI
-generate_dataframe_with_chatgpt <- function(input_df, api_key, temperature = 0.5, max_tokens = 150) {
+generate_dataframe_with_chatgpt <- function(input_df, api_key, temperature = 0.5, max_tokens = 1024) {
   # Converti il dataframe in formato JSON
   input_json <- toJSON(input_df, dataframe = "rows", pretty = TRUE)
   
