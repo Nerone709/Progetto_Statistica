@@ -13,6 +13,19 @@ generate_dataframe_with_chatgpt <- function(input_df, api_key, temperature = 0.5
     input_json,
     "Genera un nuovo dataframe in formato JSON con numeri binari (0 e 1) simili ma modificati. Rispondi solo con un JSON valido senza testo aggiuntivo."
   )
+  # Prompt engineering strategies applied from OpenAI cookbook:
+  # 1) Write clear instruction 2) Provide reference text 3) Split complex task into subtask
+  
+  prompt_refined <- paste("Using the provided numerical dataset, generate a new numerical dataset that retains the statistical characteristics of the original. Follow these guidelines: 
+                  1.Analyze the provided dataset to determine its key statistical properties, including mean, median, mode, standard deviation, variance, and distribution shape (e.g., normal, skewed).
+                  2.Create a new dataset that has the same number of entries as the original.
+                  3.Ensure that the new dataset follows a similar distribution pattern as the original, while introducing slight variations to create a distinct dataset.
+                  4.Implement methods such as adding random noise, applying transformations, or using resampling techniques to modify the original values.
+                  5.Provide a summary of the generated dataset, highlighting its key statistical properties and how they compare to the original dataset.
+                  6.Include visualizations (e.g., histograms or box plots) to illustrate the similarities and differences between the original and the new dataset.
+                  Input Dataset:", input_json, "Output format: Provide the new dataset in valid JSON without additional text.")
+  
+  system_prompt_role <- "You are a helpful assistant designed to generate synthetic data."
   
   # Invia la richiesta all'API di OpenAI
   response <- POST(
@@ -36,8 +49,7 @@ generate_dataframe_with_chatgpt <- function(input_df, api_key, temperature = 0.5
   # Estrai il testo generato dall'API
   response_content <- content(response, as = "parsed")
   generated_text <- response_content$choices[[1]]$message$content
-  print(generated_text)
-  
+
   # Prova a convertire il testo generato in un dataframe
   generated_df <- tryCatch(
     fromJSON(generated_text),
