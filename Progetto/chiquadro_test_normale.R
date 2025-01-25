@@ -8,7 +8,7 @@ data <- read.csv("dataset_filtraggio_finale2.csv", sep = ",")
 data_no_dup <- data %>% distinct()
 
 #Estrazione delle colonne
-colum_norm <- data_no_dup$NoOfURLRedirect
+colum_norm <- data_no_dup$NoOfEmptyRef
 
 #Stimatore parametri non noti della distribuzione normale
 media <- mean(colum_norm)
@@ -21,40 +21,30 @@ n
 #Generazione intervalli per il test del chiquadro
 #Proprietà da rispettare: Sommatoria delle probabilità che uno degli elementi sia pari a uno
 #Numero di osservazioni attese per ogni intervallo >= 5
-intervals <- numeric(3)
-for(i in 1:3)
+intervals <- numeric(4)
+for(i in 1:4)
 {
-  intervals[i] <- qnorm(0.25*i, mean = media, sd = deviazione_standard)
+  intervals[i] <- qnorm(0.2*i, mean = media, sd = deviazione_standard)
 }
 
 #Generazione osservazioni per ogni intervallo 
-n_obs_int <- numeric(4)
+n_obs_int <- numeric(5)
 n_obs_int[1] <- length(which(colum_norm < intervals[1]))
 n_obs_int[2] <- length(which(colum_norm >= intervals[1] & colum_norm <= intervals[2]))
 n_obs_int[3] <- length(which(colum_norm >= intervals[2] & colum_norm <= intervals[3]))
-n_obs_int[4] <- length(which(colum_norm >= intervals[3]))
-#n_obs_int[5] <- length(which(colum_norm >= intervals[4] & colum_norm <= intervals[5]))
-#n_obs_int[6] <- length(which(colum_norm >= intervals[5] & colum_norm <= intervals[6]))
-#n_obs_int[7] <- length(which(colum_norm >= intervals[6] & colum_norm <= intervals[7]))
-#n_obs_int[8] <- length(which(colum_norm >= intervals[7] & colum_norm <= intervals[8]))
-#n_obs_int[9] <- length(which(colum_norm >= intervals[8] & colum_norm <= intervals[9]))
-#n_obs_int[10] <- length(which(colum_norm >= intervals[9] & colum_norm <= intervals[10]))
-#n_obs_int[11] <- length(which(colum_norm >= intervals[10] & colum_norm <= intervals[11]))
-#n_obs_int[12] <- length(which(colum_norm >= intervals[11] & colum_norm <= intervals[12]))
-#n_obs_int[13] <- length(which(colum_norm >= intervals[12] & colum_norm <= intervals[13]))
-#n_obs_int[14] <- length(which(colum_norm >= intervals[13] & colum_norm <= intervals[14]))
-#n_obs_int[15] <- length(which(colum_norm >= intervals[14]))
-                        
+n_obs_int[4] <- length(which(colum_norm >= intervals[3] & colum_norm <= intervals[4]))
+n_obs_int[5] <- length(which(colum_norm >= intervals[4]))
+
 n_obs_int
 sum(n_obs_int)
 
 #Calcolo chiquadro
-chi2 <- sum(((n_obs_int - n * 0.25)/sqrt(n*0.25)) ^ 2)
+chi2 <- sum(((n_obs_int - n * 0.2)/sqrt(n*0.2)) ^ 2)
 chi2
 
 #Calcolo intervallo accettazione ipotesi Nulla H_0:col_norm ha funzione di distribuzione normale
 #Ipotesi alternativa H_1:col_norm non ha funzione di distribuzione normale
-num_intervalli <- 4
+num_intervalli <- 5
 k <- 2
 alpha <- 0.05
 first <- qchisq(alpha/2, df = num_intervalli - k - 1)

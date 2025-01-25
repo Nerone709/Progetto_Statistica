@@ -112,8 +112,8 @@ g <- ggplot(melted_cor_matrix, aes(Var1, Var2, fill = value)) +
   ggtitle("Heatmap della Matrice di Correlazione iniziale") +
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
 
-# Stampo il plot
-print(g)
+# Salvo il plot iniziale
+ggsave("Heatmap_Correlazioni/matrice_correlazione_iniziale.png", plot = g, width = 16, height = 12, dpi = 300)
 
 # Filtro la matrice long in base ai criteri specificati
 melted_cor_matrix_filtered <- melted_cor_matrix %>%
@@ -124,19 +124,6 @@ if (nrow(melted_cor_matrix_filtered) == 0) {
   stop("Il dataset filtrato per il plot è vuoto.")
 }
 
-# Creo il primo heatmap con la matrice filtrata
-g_filtered <- ggplot(melted_cor_matrix_filtered, aes(Var1, Var2, fill = value)) +
-  geom_tile() +
-  scale_fill_gradient2(low = "blue", high = "red", mid = "white", midpoint = 0) +
-  geom_text(aes(label = round(value, 2)), color = "black", size = 3) +  # Aggiunge i valori numerici
-  theme_minimal() +
-  xlab("Variabili") +
-  ylab("Variabili") +
-  ggtitle("Heatmap della Matrice di Correlazione Filtrata per valori >= 0.50 e <= di -0.50") +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1))
-
-# Stampo il plot
-print(g_filtered)
 
 # Eliminazione colonne con valore positivo >= 0.60, e valore negativo <= -0.50
 dataset_finale <- filtered_numeric_cols %>%
@@ -154,7 +141,7 @@ melted_cor_matrix_finale <- reshape2::melt(cor_matrix_finale)
 colnames(melted_cor_matrix_finale) <- c("Var1", "Var2", "value")
 
 # Creo la heatmap per il dataset finale
-ggplot(data = melted_cor_matrix_finale, aes(x = Var1, y = Var2, fill = value)) +
+g_finale <- ggplot(data = melted_cor_matrix_finale, aes(x = Var1, y = Var2, fill = value)) +
   geom_tile(color = "white") +  # Aggiungi bordi bianchi alle celle
   scale_fill_gradient2(
     low = "blue", high = "red", mid = "white", 
@@ -173,6 +160,9 @@ ggplot(data = melted_cor_matrix_finale, aes(x = Var1, y = Var2, fill = value)) +
     x = "Variabili",
     y = "Variabili"
   )
+
+#Salvo il plot finale
+ggsave("Heatmap_Correlazioni/heatmap_finale.png", plot = g_finale,  width = 16, height = 12, dpi = 300)
 
 # Salvo il dataset finale in formato CSV
 write.csv(dataset_finale, "finale_filtraggio2.csv", row.names = FALSE)
