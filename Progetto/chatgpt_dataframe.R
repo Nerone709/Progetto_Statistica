@@ -16,17 +16,23 @@ generate_dataframe_with_chatgpt <- function(input_df, api_key, temperature = 0.5
   # Prompt engineering strategies applied from OpenAI cookbook:
   # 1) Write clear instruction 2) Provide reference text 3) Split complex task into subtask
   
-  prompt_refined <- paste("Using the provided numerical dataset, generate a new numerical dataset that retains the statistical characteristics of the original. Follow these guidelines: 
-                  1.Analyze the provided dataset to determine its key statistical properties, including mean, median, mode, standard deviation, variance, and distribution shape (e.g., normal, skewed).
-                  2.Create a new dataset that has the same number of entries as the original.
-                  3.Ensure that the new dataset follows a similar distribution pattern as the original, while introducing slight variations to create a distinct dataset.
-                  4.Implement methods such as adding random noise, applying transformations, or using resampling techniques to modify the original values.
-                  5.Provide a summary of the generated dataset, highlighting its key statistical properties and how they compare to the original dataset.
-                  6.Include visualizations (e.g., histograms or box plots) to illustrate the similarities and differences between the original and the new dataset.
-                  Input Dataset:", input_json, "Output format: Provide the new dataset in valid JSON without additional text.")
+  prompt_refined <- paste(
+    "Using the provided numerical dataset, generate a new numerical dataset that retains the statistical characteristics of the original. Follow these guidelines:
+    1. Analyze the provided dataset to determine its key statistical properties, including mean, median, mode, standard deviation, variance, and distribution shape (e.g., normal, skewed).
+    2. Create a new dataset that has the same number of entries and columns as the original.
+    3. Ensure that the new dataset follows a similar distribution pattern as the original, while introducing slight variations to create a distinct dataset.
+    4. Use numeric values that match the type of each column in the input dataset (e.g., continuous, discrete, or categorical).
+    Input Dataset:", input_json, 
+    "Output format: Respond strictly with a valid JSON array of objects. Ensure:
+    - Each object represents a row, with key-value pairs corresponding to column names and their generated values.
+    - Match the data types of the input dataset (e.g., continuous for numerical columns, discrete for categorical columns).
+    - Do not include any explanations, additional text, or incomplete JSON.
+    - If the response exceeds the token limit, split it into multiple parts. Each part must be valid JSON and parsable."
+  )
   
   system_prompt_role <- "You are a helpful assistant designed to generate synthetic data."
   
+  #4.Implement methods such as adding random noise, applying transformations, or using resampling techniques to modify the original values.
   # Invia la richiesta all'API di OpenAI
   response <- POST(
     url = "https://api.openai.com/v1/chat/completions",
@@ -34,7 +40,7 @@ generate_dataframe_with_chatgpt <- function(input_df, api_key, temperature = 0.5
     content_type_json(),
     body = list(
       model = "gpt-4",
-      messages = list(list(role = "user", content = prompt)),
+      messages = list(list(role = "system", content = system_prompt_role), list(role = "user", content = prompt)),
       temperature = temperature,
       max_tokens = max_tokens
     ),
@@ -50,10 +56,20 @@ generate_dataframe_with_chatgpt <- function(input_df, api_key, temperature = 0.5
   response_content <- content(response, as = "parsed")
   generated_text <- response_content$choices[[1]]$message$content
 
+  # Debug: Mostra l'output dell'API
+  cat("Output dell'API:\n", generated_text, "\n")
+  
+  # Rimuovi eventuale testo extra attorno al JSON (ad es., spiegazioni o commenti)
+  cleaned_json <- sub("^[^{\\[]*", "", generated_text)  # Rimuove qualsiasi cosa prima del JSON
+  cleaned_json <- sub("[^}\\]]*$", "", cleaned_json)    # Rimuove qualsiasi cosa dopo il JSON
+  
   # Prova a convertire il testo generato in un dataframe
   generated_df <- tryCatch(
-    fromJSON(generated_text),
-    error = function(e) stop("Errore nella conversione del risultato in dataframe:", e)
+    fromJSON(cleaned_json),
+    error = function(e) {
+      cat("Errore nella conversione del JSON: ", e$message, "\n")
+      stop("Risultato non valido dall'API. Controlla il formato JSON generato.")
+    }
   )
   
   return(generated_df)
@@ -62,12 +78,10 @@ generate_dataframe_with_chatgpt <- function(input_df, api_key, temperature = 0.5
 #Carico il dataframe originario
 data <- read.csv("dataset_filtraggio_finale2.csv", sep = ",")
 data_no_dup <- data %>% distinct()
-col_to_generate <- data_no_dup$HasFavicon
-col_to_generate <- as.data.frame(col_to_generate)
-col_to_generate <- col_to_generate[1:50,]
+col_to_generate <- data_no_dup[1:50, 1:7]
 
 # Inserisci la tua chiave API (sostituisci con la tua chiave valida)
-api_key <- "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"
+api_key <- "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"
 
 # Genera un nuovo dataframe basandoti su quello iniziale
 new_df <- generate_dataframe_with_chatgpt(col_to_generate, api_key)
