@@ -81,7 +81,7 @@ data_no_dup <- data %>% distinct()
 col_to_generate <- data_no_dup[1:50, 1:7]
 
 # Inserisci la tua chiave API (sostituisci con la tua chiave valida)
-api_key <- "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"
+api_key <- "xxxx"
 
 # Genera un nuovo dataframe basandoti su quello iniziale
 new_df <- generate_dataframe_with_chatgpt(col_to_generate, api_key)
