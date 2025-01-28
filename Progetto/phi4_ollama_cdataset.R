@@ -1,3 +1,8 @@
+library(httr)
+library(jsonlite)
+library(dplyr)
+
+# Funzione per inviare un batch all'API di Ollama (in locale) con retry
 process_batch_with_ollama <- function(batch_df, temperature = 0.5, max_tokens = 4096, max_retries = 3) {
   # Converte il batch in JSON
   batch_json <- toJSON(batch_df, dataframe = "rows", pretty = TRUE, auto_unbox = TRUE)
@@ -79,3 +84,57 @@ Input dataset:",
   synthetic_df <- fromJSON(clean_json, simplifyDataFrame = TRUE)
   return(synthetic_df)
 }
+
+# Funzione principale per processare il dataset suddividendo in batch combinati di righe e colonne
+process_large_csv <- function(input_file, output_file, row_batch_size = 100, col_batch_size = 23, temperature = 0.5, max_tokens = 4096) {
+  # Carica il file CSV
+  input_df <- read.csv(input_file)
+  input_df <- input_df %>% distinct()  # Rimuove i duplicati
+  
+  # Suddivisione del dataset in batch combinati
+  row_batches <- split(1:nrow(input_df), (seq_len(nrow(input_df)) - 1) %/% row_batch_size)
+  col_batches <- split(names(input_df), (seq_along(names(input_df)) - 1) %/% col_batch_size)
+  
+  # Inizializza una lista per i risultati
+  all_results <- list()
+  
+  # Itera su batch combinati di righe e colonne
+  batch_idx <- 1
+  for (row_batch_idx in seq_along(row_batches)) {
+    for (col_batch_idx in seq_along(col_batches)) {
+      # Sottoselezione del dataset
+      row_indices <- row_batches[[row_batch_idx]]
+      col_names <- col_batches[[col_batch_idx]]
+      batch_df <- input_df[row_indices, col_names, drop = FALSE]
+      
+      cat("Elaborazione batch righe", row_batch_idx, "e colonne", col_batch_idx, "...\n")
+      
+      tryCatch({
+        # Elabora il batch con l'API di Ollama
+        synthetic_batch <- process_batch_with_ollama(batch_df, temperature, max_tokens)
+        all_results[[batch_idx]] <- synthetic_batch
+        batch_idx <- batch_idx + 1
+      }, error = function(e) {
+        cat("  Errore nel batch righe", row_batch_idx, "colonne", col_batch_idx, ":", e$message, "\n")
+        # Salva il batch problematico per debug
+        problematic_file <- paste0("errori_batch/row_batch_", row_batch_idx, "_col_batch_", col_batch_idx, "_error.csv")
+        write.csv(batch_df, problematic_file, row.names = FALSE)
+        warning(paste("Batch problematico salvato in:", problematic_file))
+      })
+    }
+  }
+  
+  # Combina tutti i risultati dei batch
+  final_df <- do.call(rbind, all_results)
+  
+  # Salva il dataset sintetico
+  write.csv(final_df, output_file, row.names = FALSE)
+  cat("Dataset sintetico salvato in:", output_file, "\n")
+}
+
+# Specifica i file di input e output
+input_file <- "dataset_filtraggio_finale2.csv"
+output_file <- "synthetic_dataset/phi4/dataset_sintetico_finale.csv"
+
+# Esegui l'elaborazione
+process_large_csv(input_file, output_file, row_batch_size = 50, col_batch_size = 10 )
