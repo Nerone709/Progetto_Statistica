@@ -10,7 +10,7 @@ process_batch_with_ollama <- function(batch_df, temperature = 0.5, max_tokens = 
     
     # Crea il prompt
     prompt <- paste(
-      "You are a helpful assistant. Given the following dataset in JSON format, create a new dataset with the same structure. The new dataset should:",
+      "You are a helpful assistant. Given the following dataset in csv format, create a new dataset with the same structure. The new dataset should:",
       "1. Retain the statistical properties (e.g., mean, median, mode, standard deviation) of the original dataset.",
       "2. Introduce slight variations to make it distinct.",
       "3. Preserve the number of rows and columns.",
@@ -62,6 +62,7 @@ process_batch_with_ollama <- function(batch_df, temperature = 0.5, max_tokens = 
 process_large_csv <- function(input_file, output_file, batch_size = 25, temperature = 0.5, max_tokens = 4096) {
   # Carica il file CSV
   input_df <- read.csv(input_file)
+  input_df <- input_df[1:100, 1:11]
   input_df <- input_df %>% distinct()  # Rimuove i duplicati
   
   # Divide il dataset in batch
@@ -93,7 +94,7 @@ process_large_csv <- function(input_file, output_file, batch_size = 25, temperat
 
 # Specifica i file di input e output
 input_file <- "dataset_filtraggio_finale2.csv"
-output_file <- "synthetic_dataset/gemma2/dataset_sintetico_finale.csv"
+output_file <- "synthetic_dataset/gemma2/dataset_sintetico_gemma_pt1.csv"
 
 # Esegui l'elaborazione
 process_large_csv(input_file, output_file)
