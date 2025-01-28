@@ -103,7 +103,7 @@ process_large_csv <- function(input_file, output_file, api_key, batch_size = 10,
 }
 
 # Inserisci la tua chiave API
-api_key <- "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"
+api_key <- "XXXX"
 
 # Specifica i file di input e output
 input_file <- "dataset_filtraggio_finale2.csv"
