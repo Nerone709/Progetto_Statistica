@@ -6,7 +6,7 @@ library(gridExtra)
 library(qcc)
 
 # Caricamento del dataset
-data2 <- read.csv("dataset_filtraggio_finale2.csv")
+data2 <- read.csv("synthetic_dataset/gpt4o/dataset_sintetico.csv")
 
 # Funzione per analizzare le singole colonne e successivamente le coppie di colonne
 analyze_groups <- function(dataset, dataset_name) {
@@ -14,7 +14,7 @@ analyze_groups <- function(dataset, dataset_name) {
   num_columns <- ncol(dataset)
   
   # Creazione della directory di base
-  base_dir <- "statistica_descrittiva_plot"
+  base_dir <- "statistica_descrittiva_plot_sintetico"
   dataset_dir <- file.path(base_dir, paste0("plots_", dataset_name))
   if(!dir.exists(dataset_dir)) dir.create(dataset_dir, recursive = TRUE)
   
@@ -63,6 +63,7 @@ analyze_groups <- function(dataset, dataset_name) {
   
   # Analisi delle coppie di colonne numeriche per QQplot
   num_cols <- columns[sapply(dataset, is.numeric)]
+  
   
   for (i in seq_along(num_cols)) {
     for (j in seq((i + 1), length(num_cols))) {

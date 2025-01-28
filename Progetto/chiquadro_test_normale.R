@@ -2,7 +2,7 @@
 library(dplyr)
 
 #Carico il csv
-data <- read.csv("dataset_filtraggio_finale2.csv", sep = ",")
+data <- read.csv("synthetic_dataset/gpt4o/dataset_sintetico.csv", sep = ",")
 
 #Eliminazione duplicati
 data_no_dup <- data %>% distinct()

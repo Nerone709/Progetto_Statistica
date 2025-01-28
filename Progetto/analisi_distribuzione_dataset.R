@@ -4,7 +4,7 @@ library(moments)
 library(tidyverse)
 library (DescTools)
 
-data <- read.csv("dataset_filtraggio_finale2.csv", sep = ",")
+data <- read.csv("synthetic_dataset/gpt4o/dataset_sintetico.csv", sep = ",")
 
 #Analisi indici di sintesi per capire simmetria
 summary(data)
@@ -40,7 +40,7 @@ filter_columns_with_nonzero_mean <- function(data)
 filtered_data <- filter_columns_with_nonzero_mean(data)
 
 filtered_data_final <- filtered_data %>%
-    select(-IsDomainIP, -NoOfAmpersandInURL, -NoOfSelfRedirect, -HasExternalFormSubmit, -Crypto)
+    select(-NoOfAmpersandInURL, -NoOfSelfRedirect, -HasExternalFormSubmit, -Crypto)
 
 
 for(i in 1:ncol(filtered_data_final))
