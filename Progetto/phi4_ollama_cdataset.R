@@ -137,4 +137,4 @@ input_file <- "dataset_filtraggio_finale2.csv"
 output_file <- "synthetic_dataset/phi4/dataset_sintetico_finale.csv"
 
 # Esegui l'elaborazione
-process_large_csv(input_file, output_file, row_batch_size = 50, col_batch_size = 10 )
+process_large_csv(input_file, output_file, row_batch_size = 50, col_batch_size = 10)
