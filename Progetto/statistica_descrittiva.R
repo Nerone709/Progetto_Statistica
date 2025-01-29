@@ -6,7 +6,7 @@ library(gridExtra)
 library(qcc)
 
 # Caricamento del dataset
-data2 <- read.csv("synthetic_dataset/gpt4o/dataset_sintetico.csv")
+data2 <- read.csv("synthetic_dataset/gpt4o/dataset_sintetico_finale.csv")
 
 # Funzione per analizzare le singole colonne e successivamente le coppie di colonne
 analyze_groups <- function(dataset, dataset_name) {
@@ -102,4 +102,4 @@ analyze_groups <- function(dataset, dataset_name) {
 }
 
 # Analisi del dataset
-analyze_groups(data2, "dataset_filtraggio_finale2")
+analyze_groups(data2, "dataset_sintetico_finale")

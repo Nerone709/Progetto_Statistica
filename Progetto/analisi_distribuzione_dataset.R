@@ -4,7 +4,7 @@ library(moments)
 library(tidyverse)
 library (DescTools)
 
-data <- read.csv("synthetic_dataset/gpt4o/dataset_sintetico.csv", sep = ",")
+data <- read.csv("synthetic_dataset/gpt4o/dataset_sintetico_finale.csv", sep = ",")
 
 #Analisi indici di sintesi per capire simmetria
 summary(data)
