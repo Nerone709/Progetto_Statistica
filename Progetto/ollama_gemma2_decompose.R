@@ -82,11 +82,12 @@ decompose_and_process_csv <- function(input_file, output_file, column_groups, ba
 }
 
 input_file <- "dataset_filtraggio_finale2.csv"
-output_file <- "synthetic_dataset/gemma2/dataset_sintetico_gemma_pt1.csv"
+output_file <- "synthetic_dataset/gemma2/dataset_sintetico_gemma.csv"
 
 column_groups <- list(
-  1:11,
-  12:23
+  1:7,
+  8:14,
+  15:23
 )
 
 decompose_and_process_csv(input_file, output_file, column_groups)
