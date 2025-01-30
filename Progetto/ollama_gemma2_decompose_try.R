@@ -21,19 +21,28 @@ process_batch_with_ollama <- function(batch_df, temperature = 0.5, max_tokens = 
       "\n\nRespond ONLY with valid JSON. Do not include explanations or any other text."
     )
     
-    response <- POST(
-      url = "http://localhost:11434/v1/completions",
-      content_type_json(),
-      body = list(
-        model = "gemma2:latest",
-        prompt = prompt,
-        temperature = temperature,
-        max_tokens = max_tokens
-      ),
-      encode = "json"
-    )
+    response <- tryCatch({
+      POST(
+        url = "http://localhost:11434/v1/completions",
+        content_type_json(),
+        body = list(
+          model = "gemma2:latest",
+          prompt = prompt,
+          temperature = temperature,
+          max_tokens = max_tokens
+        ),
+        encode = "json"
+      )
+    }, error = function(e) {
+      if (grepl("Timeout was reached", e$message)) {
+        cat("Timeout nella richiesta all'API di Ollama. Tentativo di nuovo invio... (", attempts, " su ", max_retries, ")\n")
+        return(NULL)
+      } else {
+        stop(e)
+      }
+    })
     
-    if (response$status_code == 200) {
+    if (!is.null(response) && response$status_code == 200) {
       response_content <- content(response, as = "parsed")
       generated_json <- response_content$choices[[1]]$text
       
@@ -78,7 +87,7 @@ decompose_and_process_csv <- function(input_file, output_file, column_groups, ba
         results[[paste0("group", group_idx, "_batch", i)]] <- synthetic_batch
       }, error = function(e) {
         cat("Errore nel batch", i, "nel gruppo", group_idx, ":", e$message, "\n")
-        write.csv(batches[[i]], paste0("batch_group", group_idx, "_", i, "_error.csv"), row.names = FALSE)
+        write.csv(batches[[i]], paste0("errori_batch/batch_group", group_idx, "_", i, "_error.csv"), row.names = FALSE)
       })
     }
   }
