@@ -39,8 +39,8 @@ sum(n_obs_int)
 chi2 <- sum(((n_obs_int - n * intervals)/sqrt(n*intervals)) ^ 2)
 chi2
 
-#Calcolo intervallo accettazione ipotesi Nulla H_0:col_norm ha funzione di distribuzione normale
-#Ipotesi alternativa H_1:col_norm non ha funzione di distribuzione normale
+#Calcolo intervallo accettazione ipotesi Nulla H_0:col_norm ha funzione di distribuzione binomiale
+#Ipotesi alternativa H_1:col_norm non ha funzione di distribuzione binomiale
 num_intervalli <- 2
 k <- 0
 alpha <- 0.05

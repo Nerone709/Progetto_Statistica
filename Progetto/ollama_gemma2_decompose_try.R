@@ -8,8 +8,10 @@ process_batch_with_ollama <- function(batch_df, temperature = 0.5, max_tokens = 
   
   repeat {
     attempts <- attempts + 1
+    #Conversione batch di dati di input in json da mandare al LLM
     batch_json <- toJSON(batch_df, dataframe = "rows", pretty = TRUE, auto_unbox = TRUE)
     
+    #Creazione prompt per la generazione dei dati sintetici (Strategia utilizzata suddivisione del task in sottotask + linee guida su output)
     prompt <- paste(
       "You are a helpful assistant. Given the following dataset in csv format, create a new dataset with the same structure. The new dataset should:",
       "1. Retain the statistical properties (e.g., mean, median, mode, standard deviation) of the original dataset.",
@@ -22,6 +24,10 @@ process_batch_with_ollama <- function(batch_df, temperature = 0.5, max_tokens = 
     )
     
     response <- tryCatch({
+      #Definizione chiamata ollama in locale
+      #Definizione corpo chiamata tra cui modello da utilizzare prompt e iperparametri
+      #Definizione iper-parametri da dare a gemma2, temperatura uguale creatività, limite del prompt della richiesta
+      #Definizione protocollo di codifica per la comunicazione in http (json)
       POST(
         url = "http://localhost:11434/v1/completions",
         content_type_json(),
@@ -33,6 +39,7 @@ process_batch_with_ollama <- function(batch_df, temperature = 0.5, max_tokens = 
         ),
         encode = "json"
       )
+      #gestione errore su interazione tra script e api di ollama timeout nell'attesa della risposta
     }, error = function(e) {
       if (grepl("Timeout was reached", e$message)) {
         cat("Timeout nella richiesta all'API di Ollama. Tentativo di nuovo invio... (", attempts, " su ", max_retries, ")\n")
@@ -42,15 +49,21 @@ process_batch_with_ollama <- function(batch_df, temperature = 0.5, max_tokens = 
       }
     })
     
+    #Gestione risposta modello, se positivo viene estratta la risposta codificata in json
+    #Altrimenti viene generato un messaggio di errore e fatto un nuovo tentativo
     if (!is.null(response) && response$status_code == 200) {
       response_content <- content(response, as = "parsed")
       generated_json <- response_content$choices[[1]]$text
       
+      #Eliminazione spazi vuoti e caratteri speciali
       clean_json <- gsub("^  ⁠json|⁠  $", "", generated_json)
       clean_json <- gsub("\\s+", " ", clean_json)
       clean_json <- gsub("[^[:print:]]", "", clean_json)
       clean_json <- trimws(clean_json)
       
+      #Tentativo di conversione del json che contiene la risposta del modello in dataframe per essere salvato
+      #Vengono generati i seguenti errori nel caso in cui ci sia un errore nella conversione oppure un errore nella richiesta
+      #e viene fatto un nuovo tentativo
       if (jsonlite::validate(clean_json)) {
         return(fromJSON(clean_json, simplifyDataFrame = TRUE))
       } else {
@@ -72,6 +85,8 @@ decompose_and_process_csv <- function(input_file, output_file, column_groups, ba
   
   results <- list()
   
+  #Applicazione few shots learning definita dalla suddivisione in chunck di cui ognuno di esso
+  #viene suddiviso in batch
   for (group_idx in seq_along(column_groups)) {
     selected_columns <- column_groups[[group_idx]]
     cat("Elaborazione del gruppo di colonne", group_idx, "su", length(column_groups), "...\n")
@@ -82,6 +97,8 @@ decompose_and_process_csv <- function(input_file, output_file, column_groups, ba
     for (i in seq_along(batches)) {
       cat("Elaborazione del batch", i, "di", length(batches), "nel gruppo di colonne", group_idx, "...\n")
       
+      #copia nei risultati della risposta del modello relativa al batch dato in input 
+      #in caso di errore viene generato un file salvata nella directory specificata
       tryCatch({
         synthetic_batch <- process_batch_with_ollama(batches[[i]], temperature, max_tokens, max_retries)
         results[[paste0("group", group_idx, "_batch", i)]] <- synthetic_batch
@@ -92,11 +109,14 @@ decompose_and_process_csv <- function(input_file, output_file, column_groups, ba
     }
   }
   
+  #Combinazione risultati provenienti da tutti i batch legati ai chunck
   final_df <- bind_cols(results)
   write.csv(final_df, output_file, row.names = FALSE)
   cat("Dataset sintetico salvato in:", output_file, "\n")
 }
 
+#Definizione parametri utente relativo alle api input ouput file e definizione del numero di chunck
+#Il batch viene definito nella funzione processing_with_ollama
 input_file <- "dataset_filtraggio_finale2.csv"
 output_file <- "synthetic_dataset/gemma2/dataset_sintetico_gemma.csv"
 

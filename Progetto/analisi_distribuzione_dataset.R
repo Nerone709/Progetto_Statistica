@@ -39,10 +39,12 @@ filter_columns_with_nonzero_mean <- function(data)
 # Applica la funzione al dataset
 filtered_data <- filter_columns_with_nonzero_mean(data)
 
+# Eliminazione colonne con media nulla poiché non si possono calcolare momenti d'ordine superiore
 filtered_data_final <- filtered_data %>%
     select(-NoOfAmpersandInURL, -NoOfSelfRedirect, -HasExternalFormSubmit, -Crypto)
 
 
+#Calcolo coeff variazione (analisi stabilità)
 for(i in 1:ncol(filtered_data_final))
 {
   cv_val <- CoefVar(filtered_data_final[, i])
@@ -50,6 +52,7 @@ for(i in 1:ncol(filtered_data_final))
 }
 
 
+#calcolo skewness e kurtosis
 for(i in 1:ncol(data))
 {
   sk_val <- Skew(data[, i])
@@ -57,15 +60,3 @@ for(i in 1:ncol(data))
   cat(i, " Skewness value: ", sk_val , "\n")
   cat(i, "Kurtosis value: ", kurt_val, "\n")
 }
-
-
-#for(i in 1:ncol(filtered_data_final))
-#{
-#  moda <- function(x)
-#  {
-#    ux <-unique(x)
-#    ux[which.max(tabulate(match(x, ux)))]
-#    plot_filtered <- ggplot()
-#  }
-#}
-

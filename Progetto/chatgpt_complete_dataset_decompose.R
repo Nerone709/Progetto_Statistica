@@ -9,8 +9,10 @@ process_batch_with_openai <- function(batch_df, api_key, temperature = 0.5, max_
     mutate_all(~ ifelse(. == "", NA, .)) %>% # Sostituisce stringhe vuote con NA
     na.omit()                               # Rimuove righe con NA
   
+  #Conversione batch di dati di input in json da mandare al LLM
   batch_json <- toJSON(batch_df, dataframe = "rows", pretty = FALSE, auto_unbox = TRUE)
   
+  #Creazione prompt per la generazione dei dati sintetici (Strategia utilizzata suddivisione del task in sottotask + linee guida su output)
   prompt <- paste(
     "You are a helpful assistant. Given the following dataset in JSON format, create a new dataset with the same structure. The new dataset should:",
     "1. Retain the statistical properties (e.g., mean, median, mode, standard deviation) of the original dataset.",
@@ -21,8 +23,14 @@ process_batch_with_openai <- function(batch_df, api_key, temperature = 0.5, max_
     batch_json
   )
   
+  #Definizione tentativi di rinoltrare l'input a causa di errore di varia natura 
   retries <- 0
   while (retries < max_retries) {
+    #Definizione chiamata post https per utilizzare le api di openai
+    #Definizione corpo chiamata, header per autenticazione tramite api key, definizione json di input
+    #Definizione modello da utilizzare e comandi di ruolo legati al sistema e prompt utente
+    #Definizione iper-parametri da dare a gpt4o, temperatura uguale creatività, limite del prompt della richiesta
+    #Definizione protocollo di codifica per la comunicazione in https (json)
     response <- POST(
       url = "https://api.openai.com/v1/chat/completions",
       add_headers(Authorization = paste("Bearer", api_key)),
@@ -39,10 +47,15 @@ process_batch_with_openai <- function(batch_df, api_key, temperature = 0.5, max_
       encode = "json"
     )
     
+    #Gestione risposta modello, se positivo viene estratta la risposta codificata in json
+    #Altrimenti viene generato un messaggio di errore e fatto un nuovo tentativo
     if (response$status_code == 200) {
       response_content <- content(response, as = "parsed")
       generated_json <- response_content$choices[[1]]$message$content
       
+      #Tentativo di conversione del json che contiene la risposta del modello in dataframe per essere salvato
+      #Vengono generati i seguenti errori nel caso in cui ci sia un errore nella conversione oppure un errore nella richiesta
+      # delle api, vengono gestiti e viene fatto un nuovo tentativo
       tryCatch({
         synthetic_df <- fromJSON(generated_json, simplifyDataFrame = TRUE)
         return(synthetic_df)
@@ -67,6 +80,8 @@ decompose_and_process_csv <- function(input_file, output_file, api_key, column_g
   
   results <- list()
   
+  #Applicazione few shots learning definita dalla suddivisione in chunck di cui ognuno di esso
+  #viene suddiviso in batch
   for (group_idx in seq_along(column_groups)) {
     selected_columns <- column_groups[[group_idx]]
     cat("Elaborazione del gruppo di colonne", group_idx, "su", length(column_groups), "...\n")
@@ -80,6 +95,8 @@ decompose_and_process_csv <- function(input_file, output_file, api_key, column_g
         synthetic_batch <- process_batch_with_openai(
           batches[[i]], api_key, temperature, max_tokens, max_retries
         )
+        #copia nei risultati della risposta del modello relativa al batch dato in input 
+        #in caso di errore viene generato un messaggio relativo al batch per il debugging
         results[[paste0("group", group_idx, "_batch", i)]] <- synthetic_batch
       }, error = function(e) {
         cat("Errore nel batch", i, "nel gruppo", group_idx, ":", e$message, "\n")
@@ -87,11 +104,15 @@ decompose_and_process_csv <- function(input_file, output_file, api_key, column_g
     }
   }
   
+  #Combina i risultati di tutti i batch relativi a tutti i chunck in un unico
+  #dataframe e salva quest'ultimo
   final_df <- bind_cols(results)
   write.csv(final_df, output_file, row.names = FALSE)
   cat("Dataset sintetico salvato in:", output_file, "\n")
 }
 
+#Definizione parametri utente relativo alle api input ouput file e definizione del numero di chunck
+#Il batch viene definito nella funzione processing_with_openai
 api_key <- "XXXX"
 input_file <- "dataset_filtraggio_finale2.csv"
 output_file <- "dataframe_chatgpt/gpt4/dataset_sintetico_finale.csv"

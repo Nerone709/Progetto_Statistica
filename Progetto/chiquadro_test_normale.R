@@ -52,5 +52,3 @@ last <- qchisq(1 - alpha/2, df = num_intervalli - k - 1)
 
 first
 last
-
-#Rigettata ipotesi nulla -> kvalue: 17826.1 intervallo accettazione:  0.0009820691 e 5.023886 (Colonna HasFavicon)
