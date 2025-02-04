@@ -80,7 +80,7 @@ process_batch_with_ollama <- function(batch_df, temperature = 0.5, max_tokens = 
 }
 
 # Funzione principale per processare l'intero dataset
-decompose_and_process_csv <- function(input_file, output_file, column_groups, batch_size = 1000, temperature = 0.5, max_tokens = 4096, max_retries = 3) {
+decompose_and_process_csv <- function(input_file, output_file, column_groups, batch_size = 2000, temperature = 0.5, max_tokens = 4096, max_retries = 3) {
   input_df <- read.csv(input_file)
   
   results <- list()
